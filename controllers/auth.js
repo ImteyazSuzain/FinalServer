@@ -178,9 +178,10 @@ export const findPeople = async (req, res) => {
 		// user.following
 		let following = user.following;
 		following.push(user._id);
-		const people = await User.find({ _id: { $nin: following } })
-			.select("-password -secret")
-			.limit(10);
+		const people = await User.find({ _id: { $nin: following } }).select(
+			"-password -secret"
+		);
+
 		res.json(people);
 	} catch (err) {
 		console.log(err);
@@ -244,6 +245,34 @@ export const userUnfollow = async (req, res) => {
 				$pull: { following: req.body._id },
 			},
 			{ new: true }
+		);
+		res.json(user);
+	} catch (err) {
+		console.log(err);
+	}
+};
+//we are searching based on two properties username and name
+//so we are using or over here
+//Ryan === ryan
+export const searchUser = async (req, res) => {
+	const { query } = req.params;
+	if (!query) return;
+	try {
+		// $regex is special method from mongodb
+		// The i modifier is used to perform case-insensitive matching
+		const user = await User.find({
+			$or: [
+				{ name: { $regex: query, $options: "i" } },
+				{ username: { $regex: query, $options: "i" } },
+			],
+		}).select("-password -secret");
+		res.json(user);
+	} catch {}
+};
+export const getUser = async (req, res) => {
+	try {
+		const user = await User.findOne({ username: req.params.username }).select(
+			"-password -secret"
 		);
 		res.json(user);
 	} catch (err) {

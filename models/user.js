@@ -31,9 +31,13 @@ const userSchema = new Schema(
 			required: true,
 		},
 		about: {},
-		images: {
+		image: {
 			url: String,
 			public_id: String,
+		},
+		role: {
+			type: String,
+			default: "Subscriber",
 		},
 		following: [{ type: Schema.ObjectId, ref: "User" }],
 		followers: [{ type: Schema.ObjectId, ref: "User" }],
