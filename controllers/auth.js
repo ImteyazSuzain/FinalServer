@@ -2,6 +2,9 @@ import User from "../models/user";
 import { hashPassword, comparePassword } from "../helpers/auth";
 import jwt from "jsonwebtoken";
 import { nanoid } from "nanoid";
+import Token from "../models/token";
+import { emailverify } from "../helpers/email";
+import crypto from "crypto";
 
 export const register = async (req, res) => {
 	//  console.log("REGISTER ENDPOINT => ", req.body);
@@ -38,10 +41,18 @@ export const register = async (req, res) => {
 		secret,
 		username: nanoid(6),
 	});
+
 	try {
 		await user.save();
-		// console.log("REGISTERED USE => ", user);
-		return res.json({
+		const token = await new Token({
+			userId: user._id,
+			token: crypto.randomBytes(32).toString("hex"),
+		});
+		await token.save();
+		console.log(user._id);
+		const url = `${process.env.CLIENT_URL}/user/${user._id}/verify/${token.token}`;
+		await emailverify(user.email, "Verify Email", url);
+		res.json({
 			ok: true,
 		});
 	} catch (err) {
@@ -66,6 +77,21 @@ export const login = async (req, res) => {
 		if (!match) {
 			return res.json({
 				error: "Wrong password",
+			});
+		}
+		if (!user.verified) {
+			let token = await Token.findOne({ userId: user._id });
+			if (!token) {
+				token = await new Token({
+					userId: user._id,
+					token: crypto.randomBytes(32).toString("hex"),
+				}).save();
+				const url = `${process.env.BASE_URL}user/${user.id}/verify/${token.token}`;
+
+				await emailverify(user.email, "Verify Email", url);
+			}
+			return res.json({
+				error: "Email verification required",
 			});
 		}
 		// create signed token
@@ -99,35 +125,51 @@ export const forgotPassword = async (req, res) => {
 	// console.log(req.body);
 	const { email, newPassword, secret } = req.body;
 	// validation
-	if (!newPassword || newPassword < 6) {
+
+	if (!email) {
 		return res.json({
-			error: "Wrong password",
+			error: "Email is required",
 		});
 	}
-	if (!secret) {
-		return res.json({
-			error: "Secret is required",
-		});
-	}
-	const user = await User.findOne({ email, secret });
+	const user = await User.findOne({ email });
 	if (!user) {
 		return res.json({
-			error: "We cant verify you with those details",
+			error: "No user register with a given email",
 		});
 	}
 
 	try {
-		const hashed = await hashPassword(newPassword);
-		await User.findByIdAndUpdate(user._id, { password: hashed });
+		let token = await Token.findOne({ userId: user._id });
+		if (!token) {
+			token = await new Token({
+				userId: user._id,
+				token: crypto.randomBytes(32).toString("hex"),
+			}).save();
+		}
+
+		const url = `${process.env.CLIENT_URL}/password-reset/${user._id}/${token.token}`;
+		await emailverify(user.email, "Password Reset", url);
 		return res.json({
-			success: "Congrats, Now you can login with your new password",
+			success: "Password Reset link sent to your registered email",
 		});
 	} catch (err) {
-		console.log(err);
 		return res.json({
-			error: "Something wrong. Try again.",
+			error: "Something wrong, Try Again",
 		});
 	}
+
+	// try {
+	// 	const hashed = await hashPassword(newPassword);
+	// 	await User.findByIdAndUpdate(user._id, { password: hashed });
+	// 	return res.json({
+	// 		success: "Congrats, Now you can login with your new password",
+	// 	});
+	// } catch (err) {
+	// 	console.log(err);
+	// 	return res.json({
+	// 		error: "Something wrong. Try again.",
+	// 	});
+	// }
 };
 
 export const profileUpdate = async (req, res) => {
@@ -277,5 +319,66 @@ export const getUser = async (req, res) => {
 		res.json(user);
 	} catch (err) {
 		console.log(err);
+	}
+};
+
+export const verifyUser = async (req, res) => {
+	try {
+		const user = await User.findById({ _id: req.params._id });
+		if (!user) return res.status(400).send({ message: "Invalid user" });
+		let token = await Token.findOne({
+			userId: user._id,
+			token: req.params.token,
+		});
+		if (!token) return res.status(400).send({ message: "Invalid link" });
+		await User.findByIdAndUpdate(user._id, { verified: true });
+		token = undefined;
+		res.json({
+			ok: true,
+		});
+	} catch (err) {
+		console.log(err);
+	}
+};
+export const resetPassword = async (req, res) => {
+	try {
+		const user = await User.findById(req.params._id);
+		if (!user) return res.status(400).send({ message: "Invalid user" });
+		let token = await Token.findOne({
+			userId: user._id,
+			token: req.params.token,
+		});
+		if (!token) return res.status(400).send({ message: "Invalid link" });
+
+		res.json({
+			ok: true,
+		});
+	} catch (err) {
+		console.log(err);
+	}
+};
+
+export const confirmPassword = async (req, res) => {
+	const { newPassword } = req.body;
+	// validation
+	if (!newPassword || newPassword.length < 6) {
+		return res.json({
+			error: "Password is required and should be 6 characters long",
+		});
+	}
+	const hashed = await hashPassword(newPassword);
+	const user = await User.findById(req.params._id);
+	if (!user) return res.status(400).send({ message: "Invalid link" });
+
+	try {
+		await User.findByIdAndUpdate(user._id, { password: hashed });
+		return res.json({
+			success: "Congrats, Now you can login with your new password",
+		});
+	} catch (err) {
+		console.log(err);
+		return res.json({
+			error: "Something wrong. Try again.",
+		});
 	}
 };

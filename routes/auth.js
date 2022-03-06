@@ -19,6 +19,9 @@ import {
 	userUnfollow,
 	searchUser,
 	getUser,
+	verifyUser,
+	resetPassword,
+	confirmPassword,
 } from "../controllers/auth";
 
 router.post("/register", register);
@@ -34,6 +37,8 @@ router.put("/user-unfollow", requireSignin, removeFollower, userUnfollow);
 router.get("/user-following", requireSignin, userFollowing);
 router.get("/search-user/:query", searchUser);
 router.get("/user/:username", getUser);
-
+router.get("/user/:_id/verify/:token", verifyUser);
+router.get("/reset-password/:_id/:token", resetPassword);
+router.post("/reset-password/:_id/:token", confirmPassword);
 router.get("/current-admin", requireSignin, isAdmin, currentUser);
 module.exports = router;
