@@ -1,7 +1,6 @@
 import Edu from "../models/education";
 
 export const education = async (req, res) => {
-	console.log(req.body);
 	const { formFields } = req.body;
 	console.log(formFields);
 	try {
@@ -63,6 +62,31 @@ export const deleteEducation = async (req, res) => {
 		res.json({
 			ok: true,
 		});
+	} catch (err) {
+		console.log(err);
+	}
+};
+export const addskill = async (req, res) => {
+	try {
+		const { values } = req.body;
+		// const edu = await Edu.findByIdAndUpdate(
+		// 	req.user._id,
+		// 	{
+		// 		$addToSet: {
+		// 			skill: values,
+		// 		},
+		// 	},
+		// 	{ new: true }
+		// );
+		const edu = await Edu.findOneAndUpdate(
+			{ postedBy: req.user._id },
+			{
+				$addToSet: { skill: values },
+			},
+			{ new: true }
+		);
+
+		res.json(edu);
 	} catch (err) {
 		console.log(err);
 	}

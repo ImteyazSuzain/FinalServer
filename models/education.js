@@ -27,6 +27,7 @@ const eduSchema = new mongoose.Schema(
 			type: String,
 			required: true,
 		},
+		skill: {},
 	},
 	{ timestamps: true }
 );

@@ -3,7 +3,7 @@
 	"version": "1.0.0",
 	"main": "index.js",
 	"scripts": {
-		"start": "nodemon -r esm server.js"
+		"start": "cross-env rimraf ./build && react-scripts --expose-gc--max-old-space-size=16000 nodemon -r esm server.js"
 	},
 	"author": "",
 	"license": "ISC",
@@ -11,6 +11,7 @@
 		"bcrypt": "^5.0.1",
 		"cloudinary": "^1.28.1",
 		"cors": "^2.8.5",
+		"cross-env": "^7.0.3",
 		"dotenv": "^16.0.0",
 		"esm": "^3.2.25",
 		"express": "^4.17.2",
@@ -23,6 +24,7 @@
 		"nodemailer": "^6.7.2",
 		"nodemailer-sendgrid-transport": "^0.2.0",
 		"nodemon": "^2.0.15",
-		"socket.io": "^4.4.1"
+		"socket.io": "^4.4.1",
+		"v8": "^0.1.0"
 	}
 }
