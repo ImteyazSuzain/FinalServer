@@ -2,10 +2,7 @@ import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import { readdirSync } from "fs";
-const v8 = require("v8");
-const totalHeapSize = v8.getHeapStatistics().total_available_size;
-const totalHeapSizeGb = (totalHeapSize / 1024 / 1024 / 1024).toFixed(2);
-console.log("totalHeapSizeGb: ", totalHeapSizeGb);
+
 const morgan = require("morgan");
 require("dotenv").config();
 
